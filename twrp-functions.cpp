@@ -29,7 +29,6 @@
 #include <time.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <fstab/fstab.h>
 #include <sys/mount.h>
 #include <sys/reboot.h>
 #include <sys/sendfile.h>
@@ -55,7 +54,6 @@
 #include "abx-functions.hpp"
 #include "twcommon.h"
 #include "gui/gui.hpp"
-#include <fs_mgr_priv_boot_config.h>
 #ifndef BUILD_TWRPTAR_MAIN
 #include "data.hpp"
 #include "partitions.hpp"
@@ -64,9 +62,6 @@
 #include "cutils/properties.h"
 #include "cutils/android_reboot.h"
 #include <sys/reboot.h>
-#ifdef TW_INCLUDE_CRYPTO
-#include "gui/rapidxml.hpp"
-#endif
 #endif // ndef BUILD_TWRPTAR_MAIN
 #ifndef TW_EXCLUDE_ENCRYPTED_BACKUPS
 #include "openaes/inc/oaes_lib.h"
@@ -1417,21 +1412,16 @@ string TWFunc::Get_Current_Date()
 }
 
 string TWFunc::System_Property_Get(string Prop_Name) {
-	return Partition_Property_Get(Prop_Name, PartitionManager, PartitionManager.Get_Android_Root_Path(), "build.prop");
+	return System_Property_Get(Prop_Name, PartitionManager, PartitionManager.Get_Android_Root_Path(), "build.prop");
 }
 
-string TWFunc::Partition_Property_Get(string Prop_Name, TWPartitionManager &PartitionManager, string Mount_Point, string prop_file_name) {
+string TWFunc::System_Property_Get(string Prop_Name, TWPartitionManager &PartitionManager, string Mount_Point, string prop_file_name) {
 	bool mount_state = PartitionManager.Is_Mounted_By_Path(Mount_Point);
 	std::vector<string> buildprop;
 	string propvalue;
-	string prop_file;
 	if (!PartitionManager.Mount_By_Path(Mount_Point, true))
 		return propvalue;
-	if (Mount_Point == PartitionManager.Get_Android_Root_Path()) {
-		prop_file = Mount_Point + "/system/" + prop_file_name;
-	} else {
-		prop_file = Mount_Point + "/" + prop_file_name;
-	}
+	string prop_file = Mount_Point + "/system/" + prop_file_name;
 	if (!TWFunc::Path_Exists(prop_file)) {
 		LOGINFO("Unable to locate file: %s\n", prop_file.c_str());
 		return propvalue;
@@ -1609,15 +1599,7 @@ int TWFunc::Property_Override(string Prop_Name, string Prop_Value) {
     if (TWFunc::Fox_Property_Set(Prop_Name, Prop_Value))
     	return 0;
     else
-    	return NOT_AVAILABLE;
-#endif
-}
-
-int TWFunc::Delete_Property(string Prop_Name) {
-#ifdef TW_INCLUDE_LIBRESETPROP
-    return delprop(Prop_Name.c_str(), false);
-#else
-    return NOT_AVAILABLE;
+    	return -1;
 #endif
 }
 
@@ -4330,108 +4312,6 @@ void TWFunc::List_Mounts() {
 	for (auto&& mount: mounts) {
 		LOGINFO("%s\n", mount.c_str());
 	}
-}
-
-std::string GetFstabPath() {
-	for (const char* prop : {"fstab_suffix", "hardware", "hardware.platform"}) {
-		std::string suffix;
-
-		if (!fs_mgr_get_boot_config(prop, &suffix)) continue;
-
-		for (const char* prefix : {// late-boot/post-boot locations
-			"/odm/etc/fstab.", "/vendor/etc/fstab.",
-			// early boot locations
-			"/system/etc/fstab.", "/first_stage_ramdisk/system/etc/fstab.",
-			"/fstab.", "/first_stage_ramdisk/fstab."}) {
-				std::string fstab_path = prefix + suffix;
-				LOGINFO("%s: %s\n", __func__, fstab_path.c_str());
-				if (access(fstab_path.c_str(), F_OK) == 0) return fstab_path;
-		}
-	}
-
-	return "";
-}
-
-bool TWFunc::Find_Fstab(string &fstab) {
-	fstab = GetFstabPath();
-	if (fstab == "") return false;
-	return true;
-}
-
-std::string TWFunc::Get_Version_From_Service(std::string name) {
-	int start, end;
-	start = name.find('@') + 1;
-	end = name.find("-") - start;
-	return name.substr(start, end);
-}
-
-static inline std::string Get_Version_From_FQ(std::string name) {
-	int start, end;
-	start = name.find('@') + 1;
-	end = name.find(":") - start;
-	return name.substr(start, end);
-}
-
-bool TWFunc::Get_Service_From_Manifest(std::string basepath, std::string service, std::string &res) {
-	std::string manifestpath, filename, platform;
-	manifestpath = basepath + "/etc/vintf/";
-	bool ret = false;
-
-	// Prefer using ro.boot.product.vendor.sku property, following AOSP VintfObject::fetchVendorHalManifest
-	// If not set, also try ro.board.platform.
-	platform = android::base::GetProperty("ro.boot.product.vendor.sku", "");
-	if (platform.empty()) {
-		LOGINFO("Property ro.boot.product.vendor.sku not found, trying to get vintf manifest file name from ro.board.platform\n");
-		platform = android::base::GetProperty("ro.board.platform", "");
-	}
-
-	// Let's find the service xml if exists
-	Exec_Cmd("find " + manifestpath + "manifest/ -type f -name *" + service + "*", filename, false);
-	if (filename.empty()) {
-		LOGINFO("Separate manifest doesn't exist for '%s'\n", service.c_str());
-		// Look for manifest_PLATFORM.xml
-		filename = manifestpath + "manifest_" + platform + ".xml";
-		if (!Path_Exists(filename)) {
-			// Use legacy manifest path if platform manifest is not found.
-			LOGINFO("%s not found. Using default path for manifest.xml\n", filename.c_str());
-			filename = manifestpath + "manifest.xml";
-		}
-	}
-	if (Path_Exists(filename)) {
-		char* manifest = PageManager::LoadFileToBuffer(filename, NULL);
-		LOGINFO("Looking for '%s' service in manifest\n", service.c_str());
-		xml_document<>* vintfManifest = new xml_document<>();
-		vintfManifest->parse<0>(manifest);
-		xml_node<>* manifestNode = vintfManifest->first_node("manifest");
-		std::string version;
-		if (manifestNode) {
-			for (xml_node<>* child = manifestNode->first_node(); child; child = child->next_sibling()) {
-				std::string type = child->name();
-				if (type == "hal") {
-					xml_node<>* nameNode = child->first_node("name");
-					type = nameNode->value();
-					if (type == service) {
-						xml_node<> *versionNode = child->first_node("version");
-						if (versionNode != nullptr) {
-							LOGINFO("Found version in manifest: %s\n", versionNode->value());
-						} else {
-							versionNode = child->first_node("fqname");
-							if (versionNode == nullptr) return ret;
-							LOGINFO("Found fqname in manifest: %s\n", versionNode->value());
-						}
-						version = versionNode->value();
-						if (version.find('@') == std::string::npos) {
-							res = version;
-						} else {
-							res = Get_Version_From_FQ(version);
-						}
-						ret = true;
-					}
-				}
-			}
-		}
-	}
-	return ret;
 }
 
 #endif // ndef BUILD_TWRPTAR_MAIN

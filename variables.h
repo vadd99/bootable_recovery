@@ -55,7 +55,6 @@
 #else
 #define OF_STORAGE_PATH		    "/sdcard/Fox/"
 #endif
-
 #define TW_STORAGE_PATH             "/data/recovery/"
 #define TW_SETTINGS_FILE	    ".foxs"
 #define PERSIST_SETTINGS_FILE       "/persist/.foxs"
@@ -234,9 +233,6 @@ static int Fox_Current_ROM_IsMIUI = 0; // is the currently installed ROM a MIUI 
 #define TW_RM_RF_VAR                "tw_rm_rf"
 
 #define TW_BACKUPS_FOLDER_VAR       "tw_backups_folder"
-#define TW_AUTO_DISABLE_AVB2_VAR    "tw_auto_disable_avb2"
-#define OF_AUTO_DISABLE_VBMETA_AVB2_VAR  "fox_auto_disable_vbmeta_avb2"
-#define OF_PATCH_AVB20_VAR	    "fox_patch_avb_20"
 
 #define TW_SDEXT_SIZE               "tw_sdext_size"
 #define TW_SWAP_SIZE                "tw_swap_size"
@@ -333,10 +329,5 @@ static int Fox_Current_ROM_IsMIUI = 0; // is the currently installed ROM a MIUI 
 #define TW_IS_SUPER             "tw_is_super"
 #define TW_VIRTUAL_AB_ENABLED   "tw_virtual_ab.enabled"
 #define TW_AUTO_REFLASHTWRP_VAR "tw_auto_reflashtwrp"
-
-// BUILD PROPS
-#define TW_FASTBOOT_MODE_PROP         "ro.twrp.fastbootd"
-#define TW_MODULES_MOUNTED_PROP       "twrp.modules.loaded"     // property for successfully mounted modules
-#define TW_KEYMASTER_VERSION_PROP     "keymaster_ver"
 
 #endif  // _VARIABLES_HEADER_

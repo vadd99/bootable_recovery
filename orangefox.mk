@@ -650,37 +650,6 @@ ifneq ($(FOX_BUGGED_AOSP_ARB_WORKAROUND),)
     LOCAL_CFLAGS += -DFOX_BUGGED_AOSP_ARB_WORKAROUND='"$(FOX_BUGGED_AOSP_ARB_WORKAROUND)"'
 endif
 
-# some mtk devices will need this, consequent upon recent build system commits
-ifeq ($(OF_FORCE_USE_RECOVERY_FSTAB),1)
-   $(warning "OF_FORCE_USE_RECOVERY_FSTAB" is deprecated. Use "TW_SKIP_ADDITIONAL_FSTAB := true" instead)
-   TW_SKIP_ADDITIONAL_FSTAB := true
-endif
-
-# default keymaster version
-ifneq ($(OF_DEFAULT_KEYMASTER_VERSION),)
-    LOCAL_CFLAGS += -DOF_DEFAULT_KEYMASTER_VERSION='"$(OF_DEFAULT_KEYMASTER_VERSION)"'
-endif
-
-# enforce the keymaster version from the device tree
-ifeq ($(TW_FORCE_KEYMASTER_VER),true)
-    ifeq ($(OF_DEFAULT_KEYMASTER_VERSION),)
-      $(error Using "TW_FORCE_KEYMASTER_VER" also requires "OF_DEFAULT_KEYMASTER_VERSION")
-    endif
-endif
-
-# allow disabling support for 'keymaster_ver=4.x'
-ifeq ($(OF_NO_KEYMASTER_VER_4X),1)
-    ifeq ($(OF_DEFAULT_KEYMASTER_VERSION),)
-      $(error Using "OF_NO_KEYMASTER_VER_4X" also requires "OF_DEFAULT_KEYMASTER_VERSION")
-    endif
-    LOCAL_CFLAGS += -DOF_NO_KEYMASTER_VER_4X
-endif
-
-# support disabling avb2.0 by patching vbmeta/vbmeta_system
-ifeq ($(OF_SUPPORT_VBMETA_AVB2_PATCHING),1)
-    LOCAL_CFLAGS += -DOF_SUPPORT_VBMETA_AVB2_PATCHING='"1"'
-endif
-
 # custom settings directory
 ifneq ($(FOX_SETTINGS_ROOT_DIRECTORY),)
  ifeq ($(FOX_BUILD_TYPE),Stable)
@@ -691,15 +660,6 @@ ifneq ($(FOX_SETTINGS_ROOT_DIRECTORY),)
  endif
  $(warning "FOX_SETTINGS_ROOT_DIRECTORY" is used. This is EXPERIMENTAL. Ensure that "$(FOX_SETTINGS_ROOT_DIRECTORY)" will ALWAYS be accessible on the device)
  LOCAL_CFLAGS += -DFOX_SETTINGS_ROOT_DIRECTORY='"$(FOX_SETTINGS_ROOT_DIRECTORY)"'
-endif
-
-# whether to wipe /metadata after formatting data
-ifeq ($(OF_WIPE_METADATA_AFTER_DATAFORMAT),1)
-   ifeq ($(TW_INCLUDE_FBE_METADATA_DECRYPT),true)
-	ifeq ($(BOARD_USES_METADATA_PARTITION),true)
-		LOCAL_CFLAGS += -DOF_WIPE_METADATA_AFTER_DATAFORMAT
-	endif
-   endif
 endif
 
 # bale out now if TW_MAX_BRIGHTNESS is not set
@@ -725,10 +685,5 @@ endif
 # whether to bind-mount /sdcard after formatting data to deal with MTP issues: can be problematic for encryption
 ifeq ($(OF_BIND_MOUNT_SDCARD_ON_FORMAT),1)
     LOCAL_CFLAGS += -DOF_BIND_MOUNT_SDCARD_ON_FORMAT
-endif
-
-# whether to refresh the encryption props before formatting /data
-ifeq ($(OF_REFRESH_ENCRYPTION_PROPS_BEFORE_FORMAT),1)
-    LOCAL_CFLAGS += -DOF_REFRESH_ENCRYPTION_PROPS_BEFORE_FORMAT
 endif
 #

@@ -91,7 +91,6 @@ LOCAL_C_INCLUDES += \
     system/core/fs_mgr/include/ \
     system/core/fs_mgr/libdm/include/ \
     system/core/fs_mgr/liblp/include/ \
-    system/core/fs_mgr/ \
     system/gsid/include/ \
     system/core/init/ \
     system/extras/ext4_utils/include \
@@ -308,9 +307,6 @@ ifneq ($(TW_LOAD_VENDOR_MODULES),)
     ifeq ($(TW_LOAD_VENDOR_MODULES_EXCLUDE_GKI),true)
         LOCAL_CFLAGS += -DTW_LOAD_VENDOR_MODULES_EXCLUDE_GKI
     endif
-    ifeq ($(TW_LOAD_VENDOR_BOOT_MODULES),true)
-        LOCAL_CFLAGS += -DTW_LOAD_VENDOR_BOOT_MODULES
-    endif
 endif
 ifeq ($(TW_INCLUDE_PYTHON),true)
     ifeq ($(wildcard external/python3/Android.mk),)
@@ -353,7 +349,6 @@ ifeq ($(TW_INCLUDE_CRYPTO), true)
         endif
         LOCAL_SHARED_LIBRARIES += libcryptfs_hw
     endif
-    TW_INCLUDE_LIBRESETPROP := true
 endif
 WITH_CRYPTO_UTILS := \
     $(if $(wildcard system/core/libcrypto_utils/android_pubkey.c),true)
@@ -450,12 +445,6 @@ endif
 ifeq ($(TW_ENABLE_BLKDISCARD), true)
     LOCAL_CFLAGS += -DTW_ENABLE_BLKDISCARD
 endif
-ifeq ($(TW_SKIP_ADDITIONAL_FSTAB), true)
-    LOCAL_CFLAGS += -DTW_SKIP_ADDITIONAL_FSTAB
-endif
-ifeq ($(TW_FORCE_KEYMASTER_VER), true)
-    LOCAL_CFLAGS += -DTW_FORCE_KEYMASTER_VER
-endif
 
 LOCAL_C_INCLUDES += system/vold \
 
@@ -527,11 +516,6 @@ endif
 ifeq ($(TW_INCLUDE_RESETPROP), true)
 TWRP_REQUIRED_MODULES += \
     resetprop
-endif
-
-ifeq ($(TW_INCLUDE_LIBRESETPROP), true)
-TWRP_REQUIRED_MODULES += \
-    libresetprop
 endif
 
 TWRP_REQUIRED_MODULES += \
